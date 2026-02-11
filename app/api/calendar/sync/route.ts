@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         
         return {
           id: event.id,
-          businessId: session.user.email,
+          businessId: session.user!.email,
           customerPhone: phoneMatch ? phoneMatch[0].replace(/\D/g, '') : '',
           customerName: attendee?.displayName || attendee?.email?.split('@')[0] || 'Customer',
           appointmentTime: event.start.dateTime || event.start.date,
