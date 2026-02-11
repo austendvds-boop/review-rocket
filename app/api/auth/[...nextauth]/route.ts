@@ -19,7 +19,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile }: { token: any; account: any; profile?: any }) {
       if (account) {
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
@@ -27,7 +27,7 @@ export const authOptions = {
       }
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       session.accessToken = token.accessToken
       session.refreshToken = token.refreshToken
       return session
