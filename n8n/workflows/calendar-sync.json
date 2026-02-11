@@ -1,0 +1,134 @@
+{
+  "name": "Review Rocket - Calendar Sync",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "cron-trigger",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "calendar-sync-cron"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_WEBHOOK_URL }}/calendar-sync",
+        "method": "POST",
+        "body": {
+          "businessId": "={{ $json.businessId }}",
+          "accessToken": "={{ $json.accessToken }}"
+        }
+      },
+      "id": "http-request",
+      "name": "Sync Calendar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "appointments",
+        "value": "={{ $json.appointments }}"
+      },
+      "id": "redis-set",
+      "name": "Store Appointments",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-appointments",
+              "leftValue": "={{ $json.appointmentsSynced }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-appointments",
+      "name": "Has Appointments?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_WEBHOOK_URL }}/schedule-sms",
+        "method": "POST",
+        "body": {
+          "appointments": "={{ $json.appointments }}"
+        }
+      },
+      "id": "schedule-sms",
+      "name": "Schedule SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 200]
+    }
+  ],
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sync Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync Calendar": {
+      "main": [
+        [
+          {
+            "node": "Store Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Appointments": {
+      "main": [
+        [
+          {
+            "node": "Has Appointments?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Appointments?": {
+      "main": [
+        [
+          {
+            "node": "Schedule SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}
