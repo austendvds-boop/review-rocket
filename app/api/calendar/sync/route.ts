@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { auth } from '@/app/api/auth/[...nextauth]/route'
 import { redis, Appointment } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -74,27 +73,6 @@ export async function POST(req: NextRequest) {
     // Save appointments to Redis
     for (const apt of appointments) {
       await redis.set(`appointment:${apt.businessId}:${apt.id}`, apt)
-    }
-
-    // Trigger n8n webhook to schedule SMS
-    if (appointments.length > 0) {
-      try {
-        await fetch(process.env.N8N_WEBHOOK_URL + '/schedule-sms', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            businessId: session.user.email,
-            appointments: appointments.map(apt => ({
-              appointmentId: apt.id,
-              phoneNumber: apt.customerPhone,
-              appointmentTime: apt.appointmentTime,
-            })),
-          }),
-        })
-      } catch (error) {
-        console.error('Failed to trigger n8n webhook:', error)
-        // Continue anyway - appointments are saved
-      }
     }
 
     // Update business record
