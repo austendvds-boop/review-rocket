@@ -74,7 +74,7 @@ export default function SettingsPage() {
       const response = await fetch('/api/calendar/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: session?.accessToken }),
+        body: JSON.stringify({ accessToken: (session as any)?.accessToken }),
       })
 
       if (response.ok) {

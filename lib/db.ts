@@ -1,8 +1,28 @@
 import { Redis } from '@upstash/redis'
 
-export const redis = new Redis({
-  url: process.env.REDIS_URL!,
-  token: process.env.REDIS_TOKEN!,
+// Lazy-init Redis to avoid build-time errors when env vars aren't set
+let _redis: Redis | null = null
+
+function getRedis(): Redis {
+  if (!_redis) {
+    const url = process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL || ''
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_TOKEN || ''
+    
+    if (!url || !token) {
+      throw new Error('Redis not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.')
+    }
+    
+    _redis = new Redis({ url, token })
+  }
+  return _redis
+}
+
+export const redis = new Proxy({} as Redis, {
+  get(_, prop) {
+    const r = getRedis()
+    const val = (r as any)[prop]
+    return typeof val === 'function' ? val.bind(r) : val
+  },
 })
 
 // Business
